@@ -3,22 +3,20 @@ import PropTypes from 'prop-types';
 import FilterContext from './FilterContext';
 
 export default function FilterProvider({ children }) {
-  const [filteredName, setName] = useState('');
-  const [filter, isFilterOn] = useState(false);
-  const [column, setColumn] = useState('population');
-  const [operator, setOperator] = useState('maior que');
-  const [columnValue, setColumnValue] = useState(0);
+  const [filtered, setFiltered] = useState({});
+  const [actives, setActives] = useState([]);
+  const [columnOp, setColumnOp] = useState(['population', 'orbital_period',
+    'diameter', 'rotation_period', 'surface_water']);
+  const [comparison, setComparison] = useState('');
   const obj = {
-    filteredName,
-    filter,
-    column,
-    operator,
-    columnValue,
-    setName,
-    isFilterOn,
-    setColumn,
-    setOperator,
-    setColumnValue,
+    filtered,
+    actives,
+    columnOp,
+    comparison,
+    setFiltered,
+    setActives,
+    setColumnOp,
+    setComparison,
   };
   return (
     <FilterContext.Provider value={ obj }>

@@ -1,46 +1,24 @@
 import React, { useContext } from 'react';
 import { nanoid } from 'nanoid';
-import PlanetsContex from '../context/PlanetsContext';
 import FilterContext from '../context/FilterContext';
 
 export default function Table() {
-  const planets = useContext(PlanetsContex);
-  const filters = useContext(FilterContext);
-  const { filteredName, column, operator, columnValue } = filters; // chamar filtros aqui
-  const { filter } = filters;
-  const { length } = planets;
+  const { filtered } = useContext(FilterContext);
+  const { length } = filtered;
   if (length) {
-    const newPlanets = [...planets];
-    const headerKeys = (Object.keys(newPlanets[0]));
-    let filteredPlanets = [];
-    if (filter) {
-      filteredPlanets = newPlanets.filter((planet) => {
-        const { name } = planet;
-        const asEval = Function;
-        let symOp = '';
-        if (operator === 'maior que') symOp = '>';
-        if (operator === 'menor que') symOp = '<';
-        if (operator === 'igual a') symOp = '==';
-        const operation = `${Number(planet[column])}${symOp}${columnValue}`;
-        const operationResult = asEval(`return ${operation}`)();
-        return name.includes(filteredName)
-        && operationResult;
-      });
-      console.log('Com filtro');
-    } else {
-      filteredPlanets = newPlanets.filter((planet) => planet.name.includes(filteredName));
-      console.log('Sem filtro');
-    }
+    const planets = [...filtered];
+    const headerKeys = planets[0] ? (Object.keys(planets[0])) : 0;
     return (
       <table>
         <thead>
           <tr>
-            { headerKeys.map((key) => <th key={ nanoid() }>{ key }</th>) }
+            {planets[0] ? (
+              headerKeys.map((key) => <th key={ nanoid() }>{ key }</th>)) : null}
           </tr>
         </thead>
         <tbody>
           {
-            filteredPlanets.map((found) => {
+            planets.map((found) => {
               const planetInfo = Object.values(found);
               return (
                 <tr key={ nanoid() }>
@@ -54,3 +32,15 @@ export default function Table() {
     );
   }
 }
+
+// escrevo no input -> atualiza na hora
+// preencho campo de filtros
+// clico no botão filtrar -> atualiza
+// clico em resetar filtro -> retira os filtros
+
+/*
+  Efeito cascata:
+    Editei cliquei em filtrar
+    Use o editado
+    Manter histórico de filtro -> filtrar toda vez novamente ou salvar no filtro
+*/

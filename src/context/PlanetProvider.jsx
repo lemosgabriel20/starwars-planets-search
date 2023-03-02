@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import PlanetsContext from './PlanetsContext';
 
 export default function PlanetProvider({ children }) {
-  const [planets, setPlanets] = useState({});
+  const [apiPlanets, setApiPlanets] = useState({});
   useEffect(() => {
     const fetchThis = async () => {
       const response = await fetch('https://swapi.dev/api/planets');
@@ -13,13 +13,13 @@ export default function PlanetProvider({ children }) {
         delete obj.residents;
         return obj;
       });
-      setPlanets(newPlanets);
+      console.log('fetching');
+      setApiPlanets(newPlanets);
     };
     fetchThis();
   }, []);
-
   return (
-    <PlanetsContext.Provider value={ planets }>
+    <PlanetsContext.Provider value={ apiPlanets }>
       <div>{children}</div>
     </PlanetsContext.Provider>
   );
