@@ -1,137 +1,232 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import FilterContext from '../context/FilterContext';
 import PlanetsContex from '../context/PlanetsContext';
 
 export default function Filter() {
   const apiPlanets = useContext(PlanetsContex);
-  const { filtered, setFiltered, actives, setActives, columnOp,
-    comparison, setComparison, setColumnOp } = useContext(FilterContext);
-
-  const [oneTime, setOneTime] = useState(1);
-  const [filterClicked, setFilterClick] = useState(false);
-  const [tempActives, setTempActives] = useState('');
-  const [isTableLoading, setTableLoading] = useState(true);
-  const [firstColItem, setFirstCol] = useState(true);
-  const [compValue, setCompValue] = useState(true);
-  /* const originalOp = ['population', 'orbital_period',
-  'diameter', 'rotation_period', 'surface_water']; */
-  const { length } = apiPlanets;
-
-  const filterByName = useCallback((evt, nameFilter) => {
-    if (length) {
-      const planets = [...apiPlanets];
-      const result = planets.filter((planet) => {
-        const { name } = planet;
-        return (name).toLowerCase().includes(nameFilter);
-      });
-      setFiltered(result);
-    }
-  }, [apiPlanets, length, setFiltered]);
+  const { setRender } = useContext(FilterContext);
+  const [planets, setPlanets] = useState([{ name: '' }]);
+  const [filters, setFilters] = useState([]);
+  const [order, setOrder] = useState({ column: 'population', sort: 'ASC' });
+  const [chosen, setChosen] = useState(
+    { column: 'population', comparison: 'maior que', value: 0 },
+  );
+  const [options, setOptions] = useState(['population', 'orbital_period',
+    'diameter', 'rotation_period', 'surface_water']);
 
   const handleFilter = () => {
-    setFilterClick(true);
+    const originalOptions = ['population', 'orbital_period',
+      'diameter', 'rotation_period', 'surface_water'];
+    const disabledOptions = [];
+    const toFilter = [...filters, chosen];
+    if (chosen.column) {
+      setFilters(toFilter);
+      console.log(toFilter);
+      let newPlanets = [];
+      toFilter.forEach((filter) => {
+        newPlanets = (planets.filter((planet) => {
+          if (filter.comparison === 'maior que') {
+            return Number(planet[filter.column]) > filter.value;
+          }
+          if (filter.comparison === 'menor que') {
+            return Number(planet[filter.column]) < filter.value;
+          }
+          return Number(planet[filter.column]) === filter.value;
+        }));
+        setPlanets(newPlanets);
+        disabledOptions.push(filter.column);
+      });
+      setOptions(originalOptions.filter((option) => !disabledOptions.includes(option)));
+      setPlanets(newPlanets);
+      setRender(newPlanets);
+    }
+  };
+  const removeFilter = (actualFilter) => {
+    const originalOptions = ['population', 'orbital_period',
+      'diameter', 'rotation_period', 'surface_water'];
+    const disabledOptions = [];
+    const toFilter = filters.filter((item) => (
+      JSON.stringify(item) !== JSON.stringify(actualFilter)));
+    console.log(toFilter);
+    setFilters(toFilter);
+    let newPlanets = apiPlanets;
+    toFilter.forEach((filter) => {
+      newPlanets = (newPlanets.filter((planet) => {
+        if (filter.comparison === 'maior que') {
+          return Number(planet[filter.column]) > filter.value;
+        }
+        if (filter.comparison === 'menor que') {
+          return Number(planet[filter.column]) < filter.value;
+        }
+        if (filter.comparison === 'igual a') {
+          return Number(planet[filter.column]) === filter.value;
+        }
+        return [];
+      }));
+      setPlanets(newPlanets);
+      disabledOptions.push(filter.column);
+    });
+    setOptions(originalOptions.filter((option) => !disabledOptions.includes(option)));
+    setPlanets(newPlanets);
+    setRender(newPlanets);
+  };
+
+  const removeAllFilters = () => {
+    setFilters([]);
+    setPlanets(apiPlanets);
+    setRender(apiPlanets);
+  };
+
+  const orderPlanets = () => {
+    const columnVal = [];
+    const unknown = [];
+    planets.forEach((planet) => {
+      if (planet[order.column] === 'unknown') {
+        unknown.push('unknown');
+        return unknown;
+      }
+      return columnVal.push((planet[order.column]
+      ));
+    });
+    if (order.sort === 'ASC') columnVal.sort((a, b) => a - b);
+    else columnVal.sort((a, b) => b - a);
+    if (unknown.length > 0) unknown.forEach(() => columnVal.push('unknown'));
+    const newPlanets = [];
+    console.log(order);
+    columnVal.forEach((val) => {
+      const temp = planets.find((planet) => (
+        planet[order.column] === val
+        && !JSON.stringify(newPlanets).includes(JSON.stringify(planet))
+      ));
+      newPlanets.push(temp);
+    });
+    console.log(newPlanets);
+    setRender(newPlanets);
   };
 
   useEffect(() => {
-    if (filterClicked && !actives.includes(tempActives)) {
-      setActives([...actives, tempActives]);
-      if (comparison === 'maior que') {
-        // filtrar
-        const result = filtered.filter((planet) => {
-          const value = Number(compValue);
-          return Number(planet[tempActives]) > value;
-        });
-        setFiltered(result);
-      }
-      if (comparison === 'menor que') {
-        // filtrar
-        const result = filtered.filter((planet) => {
-          const value = Number(compValue);
-          return Number(planet[tempActives]) < value;
-        });
-        setFiltered(result);
-      }
-      if (comparison === 'igual a') {
-        const result = filtered.filter((planet) => {
-          const value = Number(compValue);
-          return Number(planet[tempActives]) === value;
-        });
-        setFiltered(result);
-      }
-      const newColumns = columnOp.filter((option) => !actives.includes(option));
-      const moreFiltring = newColumns.filter((option) => option !== tempActives);
-      setColumnOp(moreFiltring);
-      setFilterClick(false);
-    }
-    if (filterClicked) setTempActives(firstColItem);
-  }, [setFilterClick, actives, filterClicked, setActives, tempActives, comparison,
-    compValue, setFiltered, filtered, columnOp, setColumnOp, firstColItem]);
+    setChosen({ column: options[0], comparison: 'maior que', value: 0 });
+  }, [options]);
 
   useEffect(() => {
-    if (length && oneTime) {
-      filterByName({}, '');
-      setOneTime(0);
-      setComparison('maior que');
-      setTempActives('population');
-      setCompValue(0);
-      setTableLoading(false);
+    const { length } = apiPlanets;
+    if (length) {
+      setPlanets(apiPlanets);
+      setRender(apiPlanets);
     }
-  }, [oneTime, filterByName, length, setTempActives, setComparison]);
+  }, [apiPlanets, setRender]);
 
   return (
     <div>
       <input
         data-testid="name-filter"
         type="text"
-        onChange={ (evt) => filterByName(evt, evt.target.value) }
+        onChange={ (evt) => {
+          setRender(planets.filter((planet) => (
+            planet.name.toLowerCase().includes(evt.target.value.toLowerCase())
+          )));
+        } }
       />
 
       <select
         data-testid="column-filter"
-        onChange={ (evt) => {
-          setFirstCol(evt.target[0].value);
-          console.log(columnOp);
-          setTempActives(evt.target.value);
-        } }
+        onChange={ (evt) => setChosen({ ...chosen, column: evt.target.value }) }
       >
-        { columnOp.includes('population') ? (
-          <option value="population">population</option>) : null}
-        { columnOp.includes('orbital_period') ? (
-          <option value="orbital_period">orbital_period</option>) : null}
-        { columnOp.includes('diameter') ? (
-          <option value="diameter">diameter</option>) : null}
-        { columnOp.includes('rotation_period') ? (
-          <option value="rotation_period">rotation_period</option>) : null}
-        { columnOp.includes('surface_water') ? (
-          <option value="surface_water">surface_water</option>) : null}
-        { columnOp.length ? null : <option value="404"> </option>}
+        {options.map((option, index) => (
+          <option key={ index } value={ option }>{ option }</option>
+        ))}
       </select>
 
       <select
         data-testid="comparison-filter"
-        onChange={ (evt) => {
-          setComparison(evt.target.value);
-        } }
+        onChange={ (evt) => setChosen({ ...chosen, comparison: evt.target.value }) }
       >
-        <option value="maior que">maior que</option>
-        <option value="menor que">menor que</option>
-        <option value="igual a">igual a</option>
+        <option
+          value="maior que"
+        >
+          maior que
+        </option>
+        <option
+          value="menor que"
+        >
+          menor que
+        </option>
+        <option
+          value="igual a"
+        >
+          igual a
+        </option>
       </select>
 
       <input
         data-testid="value-filter"
         type="number"
-        defaultValue="0"
-        onChange={ (evt) => setCompValue(evt.target.value) }
+        defaultValue={ 0 }
+        onChange={ (evt) => setChosen({ ...chosen, value: Number(evt.target.value) }) }
       />
 
-      <input
+      <button
         data-testid="button-filter"
-        type="button"
-        disabled={ isTableLoading }
         onClick={ () => handleFilter() }
-        value="teste"
-      />
+      >
+        Filter
+      </button>
+      <button
+        data-testid="button-remove-filters"
+        onClick={ () => removeAllFilters() }
+      >
+        Remove Filters
+      </button>
+      {
+        filters.map((filter, index) => (
+          <div key={ index } data-testid="filter">
+            {`${filter.column} ${filter.comparison} ${filter.value}`}
+            <button
+              onClick={ () => removeFilter(filter) }
+              data-testid={ `${index}-remove-filter-btn` }
+            >
+              X
+            </button>
+          </div>
+        ))
+      }
+      <select
+        onChange={ (evt) => setOrder({ ...order, column: evt.target.value }) }
+        data-testid="column-sort"
+      >
+        <option value="population">population</option>
+        <option value="orbital_period">orbital_period</option>
+        <option value="diameter">diameter</option>
+        <option value="rotation_period">rotation_period</option>
+        <option value="surface_water">surface_water</option>
+      </select>
+      <label>
+        <input
+          type="radio"
+          name="order"
+          value="ASC"
+          defaultChecked
+          onClick={ () => setOrder({ ...order, sort: 'ASC' }) }
+          data-testid="column-sort-input-asc"
+        />
+        Ascendente
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="order"
+          value="DESC"
+          onClick={ () => setOrder({ ...order, sort: 'DESC' }) }
+          data-testid="column-sort-input-desc"
+        />
+        Descendente
+      </label>
+      <button
+        data-testid="column-sort-button"
+        onClick={ () => orderPlanets() }
+      >
+        Ordernar
+      </button>
     </div>
   );
 }
